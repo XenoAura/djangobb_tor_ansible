@@ -1,0 +1,25 @@
+upstream djangobb {
+    server 127.0.0.1:5000;
+}
+
+server {
+    listen 127.0.0.1:8000;
+    server_name {{ onion_domain }};
+    server_tokens off;
+
+    #access_log /var/log/nginx/djangobb.access.log;
+    #error_log  /var/log/nginx/djangobb.error.log;
+    location / {
+        include uwsgi_params;
+        uwsgi_pass djangobb;
+    }
+
+    location /static/ {
+        root {{ djangobb_app_path }};
+    }
+
+    location /static/admin/ {
+        root {{ djangobb_app_path }};
+    }
+
+}

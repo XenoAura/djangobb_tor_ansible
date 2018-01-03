@@ -1,0 +1,16 @@
+[program:{{ project_name }}_uwsgi]
+environment=PATH="{{ virtualenv_path }}/bin"
+numprocs=1
+directory={{ project_path }}
+command={{ virtualenv_path }}/bin/uwsgi uwsgi_{{ project_name }}.ini
+user={{ user_name }}
+autostart=true
+autorestart=true
+redirect_stderr=true
+stopwaitsecs=30
+stopsignal=INT
+stderr_logfile={{ project_path }}/supervisor_err.log
+stdout_logfile={{ project_path }}/supervisor_out.log
+stdout_logfile_maxbytes=100MB
+stdout_logfile_backups=30
+stdout_capture_maxbytes=1MB

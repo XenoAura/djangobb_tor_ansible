@@ -1,0 +1,135 @@
+---
+- name: Creates project directory
+  file: path={{ project_path }} state=directory
+
+- name: Create virtualenv
+  command: virtualenv -p {{ virtualenv_python_version }} {{ virtualenv_path }} creates={{ virtualenv_path }}/bin/activate
+
+- name: Download and unzip djangobb
+  unarchive: 
+    src: "{{ djangobb_project_url }}"
+    dest: "{{ project_path }}"
+    remote_src: yes
+    extra_opts: [--strip-components=1]
+
+- name: Check django version
+  command: "{{ virtualenv_path }}/bin/pip show django"
+  register: django_var
+  ignore_errors: yes
+
+- name: Install requirements
+  vars:
+    django_v: "{{ django_version }}"
+  pip: 
+    requirements: "{{ project_reqs }}"
+    virtualenv: "{{ virtualenv_path }}"
+  when: 'django_v not in django_var.stdout'
+
+- name: Send custor requirements file
+  template:
+    src: requirements.j2
+    dest: "{{ custom_reqs }}"
+
+- name: Install custom requirements + (Django {{ django_version }})
+  pip:
+    requirements: "{{ custom_reqs }}"
+    virtualenv: "{{ virtualenv_path }}"
+
+- name: Install djangobb package from git
+  pip: 
+    name: "git+{{ djangobb_package_repo }}"
+    virtualenv: "{{ virtualenv_path }}"
+
+- name: Send database config
+  template:
+    src: local_settings.j2
+    dest: "{{ djangobb_app_path }}/local_settings.py"
+  tags: mysql
+
+- name: Migrate djangobb database
+  django_manage:
+    app_path: "{{ djangobb_app_path }}"
+    virtualenv: "{{ virtualenv_path }}"
+    command: migrate
+  ignore_errors: yes
+  register: migrate_status
+  failed_when: '"IntegrityError" in migrate_status'
+  tags: mysql
+
+- name: Remigrate djangobb INNODB database
+  django_manage:
+    app_path: "{{ djangobb_app_path }}"
+    virtualenv: "{{ virtualenv_path }}"
+    command: migrate
+  when: migrate_status
+  tags: mysql
+
+- name: Collect djangobb staticfiles
+  django_manage:
+    app_path: "{{ djangobb_app_path }}"
+    virtualenv: "{{ virtualenv_path }}"
+    command: collectstatic
+
+# TODO move into uwsgi module??
+# CAVEAT: "ini" must have read permission for {{ user_name }}
+- name: Send uwsgi conf 
+  template:
+    src: uwsgi.j2
+    dest: "{{ project_path }}/uwsgi_{{ project_name }}.ini"
+  tags: uwsgi
+
+- name: Send django wsgi file 
+  template:
+    src: django_wsgi.j2
+    dest: "{{ djangobb_app_path }}/wsgi.py"
+  tags: uwsgi
+
+
+
+- name: Check if django superuser exists
+  shell: echo "from django.contrib.auth import get_user_model; User = get_user_model(); print(User.objects.filter(username='{{ admin_user }}').count()>0)" | {{ virtualenv_path }}/bin/python ./manage.py shell
+  args:
+    chdir: "{{ djangobb_app_path }}"
+  environment:
+    DJANGO_SETTINGS_MODULE: "{{ djangobb_settings }}"
+  register: superuser_existed
+  tags: django_admin
+
+# - name: Print superuser_existed
+#   debug:
+#     msg: "Resp: {{ superuser_existed.stdout }}"
+#   tags: django_admin
+
+- name: Create super user
+  django_manage: command="createsuperuser --noinput --username={{admin_user}} --email={{admin_email}}"
+                 app_path={{ djangobb_app_path }}
+                 virtualenv={{ virtualenv_path }}
+                 settings={{ djangobb_settings }}
+  when: '"False" in superuser_existed.stdout'
+  tags: django_admin
+
+- name: Change password tricks
+  template: 
+    src: changepassword.sh.j2 
+    dest: "{{ djangobb_app_path }}/changepassword.sh"
+    mode: 0755
+  when: '"False" in superuser_existed.stdout'
+  tags: django_admin
+
+
+- name: Change password
+  command: "{{ djangobb_app_path }}/changepassword.sh"
+  args:
+    chdir: "{{ djangobb_app_path }}"
+  environment:
+    DJANGO_SETTINGS_MODULE: "{{ djangobb_settings }}"
+  when: '"False" in superuser_existed.stdout'
+  tags: django_admin
+
+
+- name: remove changepassword.sh
+  file: path="{{ djangobb_app_path }}/changepassword.sh" state=absent
+  when: '"False" in superuser_existed.stdout'
+  tags: django_admin
+
+

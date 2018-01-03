@@ -1,0 +1,67 @@
+---
+- name: Python pre install
+  hosts: webserver
+  gather_facts: False
+  become: yes
+  pre_tasks:
+    - name: Install python for Ansible
+      raw: test -e /usr/bin/python || (apt -y update && apt install -y python-minimal)
+      changed_when: False
+    - setup: # aka gather_facts
+  tags: intro
+
+- name: Install common packages, create user
+  hosts: webserver
+  become: yes
+  roles:
+    - common
+
+- name: Create mysql user and db
+  hosts: webserver
+  become: yes
+  roles:
+    - mysql
+  tags: mysql
+
+- name: Install djangobb 
+  hosts: webserver
+  gather_facts: False
+  become: yes
+  user: "{{ user_name }}"
+  #become_user: "{{ user_name }}"
+  roles:
+    - app
+  tags: djangobb
+
+- name: Set supervisor settings
+  hosts: webserver
+  become: yes
+  roles:
+    - supervisor
+  tags: supervisor
+
+- name: Set tor settings
+  hosts: webserver
+  become: yes
+  roles:
+    - tor
+  tags: tor
+
+- name: Set nginx settings
+  hosts: webserver
+  become: yes
+  roles:
+    - nginx
+  tags: nginx
+
+- name: Generate report file
+  hosts: webserver
+  become_user: "{{ ansible_user_id }}"
+  roles:
+    - maintenance
+  tags: report
+
+
+
+
+

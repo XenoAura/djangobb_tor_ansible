@@ -1,0 +1,14 @@
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        # 'STORAGE_ENGINE': 'InnoDB',
+        'NAME': '{{ mysql_db }}',
+        'USER': '{{ mysql_user }}',
+        'PASSWORD': '{{ mysql_pass }}',
+        'HOST': 'localhost',
+        'PORT': '3306',
+        'OPTIONS': {
+            'init_command': 'SET default_storage_engine=InnoDB',
+        }
+    }
+}

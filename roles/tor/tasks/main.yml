@@ -1,0 +1,37 @@
+---
+- name: Send torrc conf
+  template:
+    src: torrc.j2
+    dest: "/etc/tor/torrc"
+  notify:
+    - restart tor
+  register: torrc
+
+- name: Force restart tor
+  service: name=tor state=restarted
+  when: torrc.changed
+
+- name: Slurp hosts file
+  slurp:
+    src: /var/lib/tor/hidden_service/hostname
+  register: onion_domain
+  tags: report, nginx
+
+- name: Slurp private key file
+  slurp:
+    src: /var/lib/tor/hidden_service/private_key
+  register: private_key
+  tags: report
+
+- name: Set onion hostname as global var
+  set_fact:
+    onion_domain: "{{ onion_domain['content'] | b64decode | replace('\n', '') }}"
+  tags: report, nginx
+
+- name: Set onion private key as global var
+  set_fact:
+    private_key: "{{ private_key['content'] | b64decode }}"
+  tags: report
+
+
+

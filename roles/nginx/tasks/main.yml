@@ -1,0 +1,22 @@
+- name: Send nginx conf
+  template:
+    src: nginx.j2
+    dest: "/etc/nginx/sites-available/{{ project_name }}.conf"
+  notify:
+    - restart nginx
+
+- name: Create links for sites-enabled
+  file:
+    state: link
+    src: "/etc/nginx/sites-available/{{ project_name }}.conf"
+    dest: "/etc/nginx/sites-enabled/{{ project_name }}.conf"
+  notify:
+   - restart nginx
+
+- name: Disable the default site
+  file:
+    path: "/etc/nginx/sites-enabled/default"
+    state: absent
+  notify:
+    - restart nginx
+

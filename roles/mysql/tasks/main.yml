@@ -1,0 +1,15 @@
+---
+- name: Create a new database
+  mysql_db:
+    name: "{{ mysql_db }}"
+    encoding: utf8
+    state: present
+    login_host: localhost
+    login_user: root
+
+- name: Create user and grant privileges for database
+  mysql_user:
+    name: "{{ mysql_user }}"
+    password: "{{ mysql_pass }}"
+    priv: "{{ mysql_db }}.*:ALL"
+    state: present

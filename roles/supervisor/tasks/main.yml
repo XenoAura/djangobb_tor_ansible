@@ -1,0 +1,17 @@
+---
+- name: Send supervisor conf 
+  template:
+    src: supervisor.j2
+    dest: "{{ project_path }}/supervisor_{{ project_name }}.conf"
+  notify:
+    - restart supervisor
+
+- name: Create supervisor links
+  file:
+    state: link
+    src: "{{ project_path }}/supervisor_{{ project_name }}.conf"
+    dest: "/etc/supervisor/conf.d/{{ project_name }}.conf"
+  notify:
+    - restart supervisor
+
+

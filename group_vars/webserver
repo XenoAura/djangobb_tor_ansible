@@ -1,0 +1,26 @@
+user_name: testuser
+user_pass: "{{ lookup('password', 'credentials/' + inventory_hostname + '/userpass length=10', chars=ascii_letters) }}"
+user_home: /home/{{ user_name }}
+
+virtualenv_python_version: python
+virtualenv_path: "{{ project_path }}/env"
+
+project_name: djangobb
+project_path: "{{ user_home }}/{{ project_name }}"
+project_reqs: "{{ project_path }}/requirements.txt"
+custom_reqs: "{{ project_path }}/requirements_custom.txt"
+djangobb_app_path: "{{ project_path }}/basic_project"
+django_version: 1.8.15
+djangobb_settings: settings
+admin_user: admin
+admin_pass: 123123123
+admin_email: "{{ admin_user }}@example.com"
+
+mysql_db: djangobb
+mysql_user: djangobb
+mysql_pass: djangobb
+
+djangobb_package_repo: https://github.com/slav0nic/djangobb.git
+djangobb_project_url: https://bitbucket.org/slav0nic/djangobb_project/get/tip.tar.gz
+
+
